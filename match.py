@@ -66,6 +66,16 @@ def main():
     num_repeats = 0
 
     while np.any(available_mask):
+        # Adjustment so that groups are smaller when NUM_PEOPLE is not divisible by GROUP_SIZE
+        if (
+            len(current_matches) == 0
+            and GROUP_SIZE > 2
+            and np.sum(available_mask) % GROUP_SIZE != 0
+        ):
+            group_size = ((np.sum(available_mask) % GROUP_SIZE) + GROUP_SIZE) // 2
+        else:
+            group_size = GROUP_SIZE
+
         # Choose 1 available person
         anchor_id = np.random.choice(ids[available_mask])
         available_mask[anchor_id] = False
@@ -77,7 +87,7 @@ def main():
         match_ids = [anchor_id]
         # Create a new mask of available and previously unmatched folks for this person
         curr_mask = np.logical_and(available_mask, ~match_history[anchor_id])
-        while len(match_ids) < GROUP_SIZE:
+        while len(match_ids) < group_size and np.any(available_mask):
             if np.any(curr_mask):
                 # Choose an unmatched person
                 new_id = np.random.choice(ids[curr_mask])
@@ -87,14 +97,9 @@ def main():
                 num_repeats += 1
 
             available_mask[new_id] = False
-            if new_id in match_ids:
-                print("here")
             match_ids.append(new_id)
             # Update mask to use match history of currently selected person
             curr_mask = np.logical_and(curr_mask, ~match_history[new_id])
-
-            if not np.any(available_mask):
-                break
 
         current_matches.append(match_ids)
 
